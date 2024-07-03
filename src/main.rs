@@ -121,26 +121,26 @@ fn main() {
     use env_logger;
     env_logger::builder().init();
 
-    let peg = PEG::from_grammar(PEG_GRAMMAR).unwrap();
-    let cst = peg.parse(PEG_GRAMMAR);
-
-    let transformer = Transformer {
-        input_string: PEG_GRAMMAR
-    };
-
-    create_dir("./artifacts").unwrap();
-
-    let mut file = File::create("./artifacts/peg.cst").unwrap();
-    write!(file, "{:#?}", cst).unwrap();
-
-    let parsed_peg = transformer.transform(cst.2.unwrap()).unwrap();
-    let mut file = File::create("./artifacts/peg.grammar").unwrap();
-    write!(file, "{}", parsed_peg).unwrap();
-
-    let mut file = File::create("./artifacts/peg.ast").unwrap();
-    write!(file, "{:#?}", parsed_peg).unwrap();
+    // let peg = PEG::from_grammar(PEG_GRAMMAR).unwrap();
+    // let cst = peg.parse(PEG_GRAMMAR);
+    //
+    // let transformer = Transformer {
+    //     input_string: PEG_GRAMMAR
+    // };
+    //
+    // create_dir("./artifacts").unwrap();
+    //
+    // let mut file = File::create("./artifacts/peg.cst").unwrap();
+    // write!(file, "{:#?}", cst).unwrap();
+    //
+    // let parsed_peg = transformer.transform(cst.2.unwrap()).unwrap();
+    // let mut file = File::create("./artifacts/peg.grammar").unwrap();
+    // write!(file, "{}", parsed_peg).unwrap();
+    //
+    // let mut file = File::create("./artifacts/peg.ast").unwrap();
+    // write!(file, "{:#?}", parsed_peg).unwrap();
 
     let p = PEG::from_grammar(SIMPLE_LANGUAGE).unwrap();
-    println!("{:#?}", p.parse("aabb\\42;\\42;"));
+    println!("{:#?}", p.parse("aabbccc"));
     println!("{}", p);
 }
