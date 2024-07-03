@@ -146,7 +146,8 @@ fn main() {
     // let mut file = File::create("./artifacts/peg.ast").unwrap();
     // write!(file, "{:#?}", parsed_peg).unwrap();
 
-    let p = PEG::from_grammar("Grammar", SIMPLE_LANGUAGE).unwrap();
+    let (start, grammar) = SIMPLE_LANGUAGE;
+    let p = PEG::from_grammar(start, grammar).unwrap();
     println!("{:#?}", p.parse("aabbcc"));
     println!("{}", p);
 }
