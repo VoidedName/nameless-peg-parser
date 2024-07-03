@@ -141,6 +141,6 @@ fn main() {
     // write!(file, "{:#?}", parsed_peg).unwrap();
 
     let p = PEG::from_grammar(SIMPLE_LANGUAGE).unwrap();
-    println!("{:#?}", p.parse("aabbccc"));
+    println!("{:#?}", p.parse("aabbcc"));
     println!("{}", p);
 }
