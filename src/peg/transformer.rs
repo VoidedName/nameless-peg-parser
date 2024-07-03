@@ -1,6 +1,11 @@
 use crate::peg::expression::Expression;
 use crate::peg::expression::Expression::Literal;
-use crate::peg::grammar::PEG;
+use crate::peg::grammar::{
+    AND_STR, CHAR_STR, CLASS_MEMBER_STR, CLASS_STR, CLOSE_STR, DEFINITION_STR, DOT_STR,
+    END_OF_FILE_STR, EXPRESSION_STR, GRAMMAR_STR, IDENTIFIER_STR, LEFT_ARROW_STR, LITERAL_STR,
+    NOT_STR, OPEN_STR, PEG, PLUS_STR, PREFIX_STR, PRIMARY_STR, QUESTION_STR, RANGE_STR,
+    SEQUENCE_STR, SLASH_STR, SPACING_STR, STAR_STR, SUFFIX_STR,
+};
 use crate::peg::parsing::{Capture, Token};
 use crate::peg::transformer::TransformError::{
     AmbiguousNonTerminal, CstShouldOnlyHaveOneRoot, CstShouldStartWithGrammar, EmptyIdentifier,
@@ -11,7 +16,6 @@ use std::result;
 use std::slice::Iter;
 
 type Result<T> = result::Result<T, TransformError>;
-
 
 // rethink error structure to be more useful, like also reporting cursor position
 #[derive(Clone, Debug)]
@@ -36,7 +40,7 @@ pub struct Transformer<'a> {
 impl Transformer<'_> {
     /// Transforms a CST of a PEG to a PEG, for the sake of this implementation we consider the
     /// token stream that was yielded from the parse as the CST
-    pub fn transform(&self, cst: Vec<Token>) -> Result<PEG> {
+    pub fn transform(&self, start: &str, cst: Vec<Token>) -> Result<PEG> {
         // step one, turn cst into ast
         // step two analyse and make basic semantic checks
         //      a valid peg has a rule for every NonTerminal (on the reachable paths...)
@@ -57,8 +61,7 @@ impl Transformer<'_> {
                 "But found a Terminal Token instead!".to_string(),
             )),
             Token::NonTerminal(name, _, tokens) => {
-                if name != "Grammar" {
-                    // this demands that all PEGs start on "Grammar"
+                if GRAMMAR_STR != name {
                     Err(CstShouldStartWithGrammar(format!(
                         "But found a Non Terminal Token with name '{}' instead!",
                         name
@@ -67,7 +70,7 @@ impl Transformer<'_> {
                     let rules = self.process_grammar(tokens)?;
                     Ok(PEG {
                         rules,
-                        start: String::from("Grammar"),
+                        start: start.to_string(),
                     })
                 }
             }
@@ -79,24 +82,24 @@ impl Transformer<'_> {
         let mut iter = tokens.into_iter();
 
         // check for leading space
-        let spacing = iter.next().ok_or(UnExpectedToken(
-            "Expected NonTerminal 'Spacing'".to_string(),
-        ))?;
+        let spacing = iter.next().ok_or(UnExpectedToken(format!(
+            "Expected NonTerminal '{SPACING_STR}'"
+        )))?;
 
-        if !Self::is_non_terminal("Spacing", &spacing) {
-            return Err(UnExpectedToken(
-                "Expected NonTerminal 'Spacing'".to_string(),
-            ));
+        if !Self::is_non_terminal(SPACING_STR, &spacing) {
+            return Err(UnExpectedToken(format!(
+                "Expected NonTerminal '{SPACING_STR}'"
+            )));
         }
 
         let mut rules: HashMap<String, Expression> = Default::default();
         // process definitions
-        let mut next = iter.next().ok_or(UnExpectedToken(
-            "Expected NonTerminal 'Definition' or 'EndOfFile'".to_string(),
-        ))?;
+        let mut next = iter.next().ok_or(UnExpectedToken(format!(
+            "Expected NonTerminal '{DEFINITION_STR}' or '{END_OF_FILE_STR}'"
+        )))?;
         let mut non_terminals: HashSet<String> = Default::default(); // eh forgot the typing... goonna do it inefficiently for now
         loop {
-            if Self::is_non_terminal("EndOfFile", &next) {
+            if Self::is_non_terminal(END_OF_FILE_STR, &next) {
                 break;
             }
             // process definition
@@ -107,16 +110,16 @@ impl Transformer<'_> {
             }
             rules.insert(name, expression);
 
-            next = iter.next().ok_or(UnExpectedToken(
-                "Expected NonTerminal 'Definition' or 'EndOfFile'".to_string(),
-            ))?;
+            next = iter.next().ok_or(UnExpectedToken(format!(
+                "Expected NonTerminal '{DEFINITION_STR}' or '{END_OF_FILE_STR}'"
+            )))?;
         }
 
         // check if fully consumed
         if let Some(_) = iter.next() {
-            return Err(UnExpectedToken(
-                "Grammar should have no token following EndOfFile!".to_string(),
-            ));
+            return Err(UnExpectedToken(format!(
+                "Grammar should have no token following {END_OF_FILE_STR}!"
+            )));
         }
 
         // check if any observed non_terminals have no rule
@@ -185,31 +188,33 @@ impl Transformer<'_> {
     fn process_definition(&self, token: &Token) -> Result<(String, Expression, HashSet<String>)> {
         // expecting shape: Definition [ Identifier, LEFTARROW, Expression ]
         if let Token::NonTerminal(name, _, tokens) = token {
-            if name != "Definition" {
-                return Err(UnExpectedToken(
-                    "Expected NonTerminal 'Definition'".to_string(),
-                ));
+            if name != DEFINITION_STR {
+                return Err(UnExpectedToken(format!(
+                    "Expected NonTerminal '{DEFINITION_STR}'"
+                )));
             }
             if tokens.len() != 3 {
-                return Err(UnExpectedToken(
-                    "Expected Tokens '[ Identifier, LEFTARROW, Expression ]'".to_string(),
-                ));
+                return Err(UnExpectedToken(format!(
+                    "Expected Tokens '[ {IDENTIFIER_STR}, {LEFT_ARROW_STR}, {EXPRESSION_STR} ]'"
+                )));
             }
             let [identifier, leftarrow, expression] = tokens.as_slice() else {
                 panic!("Not Possible")
             };
 
             let identifier = self.process_identifier(identifier)?;
-            if !Self::is_non_terminal("LEFTARROW", leftarrow) {
-                return Err(UnExpectedToken("Expected Tokens 'LEFTARROW'".to_string()));
+            if !Self::is_non_terminal(LEFT_ARROW_STR, leftarrow) {
+                return Err(UnExpectedToken(format!(
+                    "Expected Tokens '{LEFT_ARROW_STR}'"
+                )));
             }
             let (expression, non_terminals) = self.process_expression(expression)?;
 
             Ok((identifier, expression, non_terminals))
         } else {
-            Err(UnExpectedToken(
-                "Expected NonTerminal 'Definition'".to_string(),
-            ))
+            Err(UnExpectedToken(format!(
+                "Expected NonTerminal '{DEFINITION_STR}'"
+            )))
         }
     }
 
@@ -218,13 +223,13 @@ impl Transformer<'_> {
 
         let mut identifier = String::new();
         let mut end = false;
-        for token in Self::tokens_for_non_terminal("Identifier", token)? {
+        for token in Self::tokens_for_non_terminal(IDENTIFIER_STR, token)? {
             if end {
-                return Err(UnExpectedToken(
-                    "Identifier should have no tokens after 'Spacing'".to_string(),
-                ));
+                return Err(UnExpectedToken(format!(
+                    "Identifier should have no tokens after '{SPACING_STR}'"
+                )));
             }
-            if Self::is_non_terminal("Spacing", token) {
+            if Self::is_non_terminal(SPACING_STR, token) {
                 end = true;
                 continue;
             }
@@ -254,7 +259,7 @@ impl Transformer<'_> {
         let mut sequences = vec![];
         let mut non_terminals = HashSet::new();
 
-        let tokens = Self::tokens_for_non_terminal("Expression", token)?;
+        let tokens = Self::tokens_for_non_terminal(EXPRESSION_STR, token)?;
 
         if tokens.len() % 2 != 1 {
             return Err(WrongNumberOfTokens(format!(
@@ -272,7 +277,7 @@ impl Transformer<'_> {
         }
 
         for [slash, sequence] in iter.chunk_fixed() {
-            Self::expect_non_terminal("SLASH", slash)?;
+            Self::expect_non_terminal(SLASH_STR, slash)?;
 
             let (sequence, seen_non_terminals) = self.process_sequence(sequence)?;
 
@@ -282,13 +287,17 @@ impl Transformer<'_> {
             }
         }
 
-        Ok((Expression::Choice(sequences), non_terminals))
+        match sequences.len() {
+            0 => Ok((Expression::Empty, non_terminals)),
+            1 => Ok((sequences.into_iter().next().unwrap(), non_terminals)),
+            _ => Ok((Expression::Choice(sequences), non_terminals)),
+        }
     }
 
     fn process_sequence(&self, token: &Token) -> Result<(Expression, HashSet<String>)> {
         // expected shape [(Prefix, Primary, Suffix)*]
 
-        let tokens = Self::tokens_for_non_terminal("Sequence", token)?;
+        let tokens = Self::tokens_for_non_terminal(SEQUENCE_STR, token)?;
         if tokens.len() % 3 != 0 {
             return Err(WrongNumberOfTokens(format!(
                 "Expected a multiple of 3 many tokens, but got {}",
@@ -322,17 +331,19 @@ impl Transformer<'_> {
 
     fn process_prefix(&self, prefix: &Token, expression: Expression) -> Result<Expression> {
         // expected shape [AND / OR]?
-        let tokens = Self::tokens_for_non_terminal("Prefix", prefix)?;
+        let tokens = Self::tokens_for_non_terminal(PREFIX_STR, prefix)?;
         match tokens.len() {
             0 => Ok(expression),
             1 => {
                 let token = &tokens[0];
-                if Self::is_non_terminal("AND", token) {
+                if Self::is_non_terminal(AND_STR, token) {
                     Ok(Expression::And(expression.into_rc_box()))
-                } else if Self::is_non_terminal("NOT", token) {
+                } else if Self::is_non_terminal(NOT_STR, token) {
                     Ok(Expression::Not(expression.into_rc_box()))
                 } else {
-                    Err(UnExpectedToken("Expected one of 'AND', 'NOT'".to_string()))
+                    Err(UnExpectedToken(format!(
+                        "Expected one of '{AND_STR}', '{NOT_STR}'"
+                    )))
                 }
             }
             l @ _ => Err(WrongNumberOfTokens(format!(
@@ -344,21 +355,21 @@ impl Transformer<'_> {
 
     fn process_suffix(&self, suffix: &Token, expression: Expression) -> Result<Expression> {
         // expected shape [QUESTION / STAR / PLUS]?
-        let tokens = Self::tokens_for_non_terminal("Suffix", suffix)?;
+        let tokens = Self::tokens_for_non_terminal(SUFFIX_STR, suffix)?;
         match tokens.len() {
             0 => Ok(expression),
             1 => {
                 let token = &tokens[0];
-                if Self::is_non_terminal("QUESTION", token) {
+                if Self::is_non_terminal(QUESTION_STR, token) {
                     Ok(Expression::Optional(expression.into_rc_box()))
-                } else if Self::is_non_terminal("STAR", token) {
+                } else if Self::is_non_terminal(STAR_STR, token) {
                     Ok(Expression::ZeroOrMore(expression.into_rc_box()))
-                } else if Self::is_non_terminal("PLUS", token) {
+                } else if Self::is_non_terminal(PLUS_STR, token) {
                     Ok(Expression::OneOrMore(expression.into_rc_box()))
                 } else {
-                    Err(UnExpectedToken(
-                        "Expected one of 'QUESTION', 'STAR', 'PLUS'".to_string(),
-                    ))
+                    Err(UnExpectedToken(format!(
+                        "Expected one of '{QUESTION_STR}', '{STAR_STR}', '{PLUS_STR}'"
+                    )))
                 }
             }
             l @ _ => Err(WrongNumberOfTokens(format!(
@@ -371,27 +382,30 @@ impl Transformer<'_> {
     fn process_primary(&self, primary: &Token) -> Result<(Expression, HashSet<String>)> {
         // expected shape ((Identifier !LEFTARROW) / (OPEN Expression CLOSE) / Literal / Class / DOT)
 
-        let tokens = Self::tokens_for_non_terminal("Primary", primary)?;
+        let tokens = Self::tokens_for_non_terminal(PRIMARY_STR, primary)?;
         match tokens.as_slice() {
             [open, expression, close] => {
-                Self::expect_non_terminal("OPEN", open)?;
-                Self::expect_non_terminal("CLOSE", close)?;
+                Self::expect_non_terminal(OPEN_STR, open)?;
+                Self::expect_non_terminal(CLOSE_STR, close)?;
                 Ok(self.process_expression(expression)?)
             }
             [terminal] => {
                 let name = Self::name_for_non_terminal(terminal)?;
-                if name == "Identifier" {
+                if name == IDENTIFIER_STR {
                     let non_terminal = self.process_identifier(terminal)?;
-                    Ok((Expression::NonTerminal(non_terminal.clone()), HashSet::from([non_terminal])))
-                } else if name == "Literal" {
+                    Ok((
+                        Expression::NonTerminal(non_terminal.clone()),
+                        HashSet::from([non_terminal]),
+                    ))
+                } else if name == LITERAL_STR {
                     Ok((self.process_literal(terminal)?, Default::default()))
-                } else if name == "Class" {
+                } else if name == CLASS_STR {
                     Ok((self.process_class(terminal)?, Default::default()))
-                } else if name == "DOT" {
+                } else if name == DOT_STR {
                     Ok((Expression::Any, Default::default()))
                 } else {
                     Err(UnExpectedToken(format!(
-                        "Expected Literal, Class or Dot but got {}",
+                        "Expected {IDENTIFIER_STR}, {LITERAL_STR}, {CLASS_STR} or {DOT_STR} but got {}",
                         name
                     )))
                 }
@@ -409,7 +423,7 @@ impl Transformer<'_> {
         //      / ('\"' (!'\"' Char)* '\"' Spacing))
         // [q, (not quote, char)*, quote, spacing]
 
-        let tokens = Self::tokens_for_non_terminal("Literal", token)?;
+        let tokens = Self::tokens_for_non_terminal(LITERAL_STR, token)?;
         match tokens.as_slice() {
             [_, chars @ .., _, _] => {
                 let mut literal = String::new();
@@ -431,7 +445,7 @@ impl Transformer<'_> {
         //      / ('\\' [0-9]+)
         //      / (!'\\' .))
 
-        Self::expect_non_terminal("Char", token)?;
+        Self::expect_non_terminal(CHAR_STR, token)?;
         let Token::NonTerminal(_, Capture(from, to), _) = token else {
             panic!("Can't happen!")
         };
@@ -453,7 +467,7 @@ impl Transformer<'_> {
         // expected shape
         // ('[' (!']' ClassMember)* ']' Spacing)
         // [, (not ], ClassMember*)
-        let tokens = Self::tokens_for_non_terminal("Class", token)?;
+        let tokens = Self::tokens_for_non_terminal(CLASS_STR, token)?;
 
         match tokens.as_slice() {
             [_, members @ .., _, _] => {
@@ -461,10 +475,10 @@ impl Transformer<'_> {
                 let mut symbols = HashSet::new();
 
                 for member in members {
-                    let members = Self::tokens_for_non_terminal("ClassMember", member)?;
+                    let members = Self::tokens_for_non_terminal(CLASS_MEMBER_STR, member)?;
 
                     for [member] in members.iter().chunk_fixed() {
-                        if Self::is_non_terminal("Char", member) {
+                        if Self::is_non_terminal(CHAR_STR, member) {
                             symbols.insert(self.process_char(member)?);
                         } else {
                             parts.push(self.process_range(member)?);
@@ -491,7 +505,7 @@ impl Transformer<'_> {
 
     fn process_range(&self, token: &Token) -> Result<Expression> {
         // (Char '-' Char)
-        let tokens = Self::tokens_for_non_terminal("Range", token)?;
+        let tokens = Self::tokens_for_non_terminal(RANGE_STR, token)?;
         if let [from, _, to] = tokens.as_slice() {
             let from = self.process_char(from)?;
             let to = self.process_char(to)?;

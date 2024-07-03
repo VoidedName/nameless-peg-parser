@@ -1,18 +1,20 @@
-use std::fs::create_dir;
-#[allow(unused)]
-#[allow(unused)]
-use std::fs::File;
-#[allow(unused)]
-use std::io::Write;
-#[allow(unused)]
-use log::{LevelFilter};
 use crate::example::SIMPLE_LANGUAGE;
 use crate::peg::grammar::PEG;
 #[allow(unused)]
 use crate::peg::transformer::Transformer;
+#[allow(unused)]
+use log::LevelFilter;
+#[allow(unused)]
+use std::fs::create_dir;
+#[allow(unused)]
+use std::fs::File;
+#[allow(unused)]
+use std::io::ErrorKind::AlreadyExists;
+#[allow(unused)]
+use std::io::Write;
 
-mod peg;
 mod example;
+mod peg;
 
 /// ```
 /// PEG = (NT, T, R, S)
@@ -121,26 +123,30 @@ fn main() {
     use env_logger;
     env_logger::builder().init();
 
-    // let peg = PEG::from_grammar(PEG_GRAMMAR).unwrap();
+    // let peg = PEG::from_grammar("Grammar", PEG_GRAMMAR).unwrap();
     // let cst = peg.parse(PEG_GRAMMAR);
     //
     // let transformer = Transformer {
-    //     input_string: PEG_GRAMMAR
+    //     input_string: PEG_GRAMMAR,
     // };
     //
-    // create_dir("./artifacts").unwrap();
+    // if let Err(e) = create_dir("./artifacts") {
+    //     if e.kind() != AlreadyExists {
+    //         panic!("Failed to create the artifacts folder!")
+    //     }
+    // }
     //
     // let mut file = File::create("./artifacts/peg.cst").unwrap();
     // write!(file, "{:#?}", cst).unwrap();
     //
-    // let parsed_peg = transformer.transform(cst.2.unwrap()).unwrap();
+    // let parsed_peg = transformer.transform("Grammar", cst.2.unwrap()).unwrap();
     // let mut file = File::create("./artifacts/peg.grammar").unwrap();
     // write!(file, "{}", parsed_peg).unwrap();
     //
     // let mut file = File::create("./artifacts/peg.ast").unwrap();
     // write!(file, "{:#?}", parsed_peg).unwrap();
 
-    let p = PEG::from_grammar(SIMPLE_LANGUAGE).unwrap();
+    let p = PEG::from_grammar("Grammar", SIMPLE_LANGUAGE).unwrap();
     println!("{:#?}", p.parse("aabbcc"));
     println!("{}", p);
 }

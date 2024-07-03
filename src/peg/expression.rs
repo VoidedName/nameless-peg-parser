@@ -1,6 +1,7 @@
+use crate::peg::grammar::PEG;
 use crate::peg::parsing::{Capture, ParserOutput, Token};
 use log::debug;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::fmt::{Display, Formatter};
 use std::rc::Rc;
 
@@ -23,45 +24,6 @@ pub enum Expression {
     Sequence(Vec<Expression>), // generalizing it to any number of sequences | illegal to be empty
 }
 
-///
-/// fn a(x) -> x {
-///     if x == 0 {
-///         1
-///     } else {
-///        a(x-1)
-///     }
-/// }
-///
-/// 2
-/// a(2) => a(1) => a(0) => 1
-///
-/// push stack 2
-/// push stack 1
-/// push stack 0
-/// return 1
-/// pop stack
-/// return 1
-/// pop stack
-/// return 1
-/// pop stack
-///
-/// fn a(x) -> x {
-///     let args = vec![x]
-///     while args.len() > 0 {
-///         let arg = args.pop()
-///         if x == 0 {
-///
-///         } else {
-///             args.push(x)
-///         }
-///     }
-/// }
-///
-///
-///
-
-
-
 impl Expression {
     pub fn into_rc_box(self) -> Rc<Box<Expression>> {
         Rc::new(Box::new(self))
@@ -76,13 +38,7 @@ impl Expression {
         Expression::Class(class)
     }
 
-    pub fn parse(
-        &self,
-        rules: &HashMap<String, Expression>,
-        input: &str,
-        cursor: usize,
-        depth: usize,
-    ) -> ParserOutput {
+    pub fn parse(&self, peg: &PEG, input: &str, cursor: usize, depth: usize) -> ParserOutput {
         match self {
             Expression::Empty => ParserOutput(1, cursor, Ok(vec![])),
             Expression::Any => {
@@ -111,14 +67,14 @@ impl Expression {
                 }
             }
             Expression::NonTerminal(nt) => {
-                let rule = rules
+                let rule = peg
+                    .rules
                     .get(nt)
                     .expect(format!("Encountered unknown NonTerminal symbol: {}", nt).as_str());
 
                 debug!("{}parsing {nt} @ {cursor}: {rule}", "│".repeat(depth));
 
-                let ParserOutput(cost, new_cursor, res) =
-                    rule.parse(rules, input, cursor, depth + 1);
+                let ParserOutput(cost, new_cursor, res) = rule.parse(peg, input, cursor, depth + 1);
 
                 let res = match res {
                     Ok(matches) => ParserOutput(
@@ -174,7 +130,7 @@ impl Expression {
                 ParserOutput(cost as u32, cursor, Err(()))
             }
             Expression::Group(expression) => {
-                let ParserOutput(cost, cursor, res) = expression.parse(rules, input, cursor, depth);
+                let ParserOutput(cost, cursor, res) = expression.parse(peg, input, cursor, depth);
                 ParserOutput(cost + 1, cursor, res)
             }
             Expression::ZeroOrMore(expression) => {
@@ -182,7 +138,8 @@ impl Expression {
                 let mut new_cursor = cursor;
                 let mut running_cost = 1;
                 loop {
-                    let ParserOutput(cost, downstream_cursor, res) = expression.parse(rules, input, new_cursor, depth);
+                    let ParserOutput(cost, downstream_cursor, res) =
+                        expression.parse(peg, input, new_cursor, depth);
                     running_cost += cost;
                     match res {
                         Ok(mut matches) => {
@@ -191,7 +148,7 @@ impl Expression {
                         }
                         Err(_) => {
                             break ParserOutput(running_cost, new_cursor, Ok(captures));
-                        },
+                        }
                     }
                 }
             }
@@ -200,24 +157,24 @@ impl Expression {
                     Expression::Group(expression.clone()),
                     Expression::ZeroOrMore(expression.clone()),
                 ]);
-                desugared.parse(rules, input, cursor, depth)
+                desugared.parse(peg, input, cursor, depth)
             }
             Expression::Optional(expression) => {
-                let ParserOutput(cost, cursor, res) = expression.parse(rules, input, cursor, depth);
+                let ParserOutput(cost, cursor, res) = expression.parse(peg, input, cursor, depth);
                 match res {
                     Ok(matches) => ParserOutput(cost + 1, cursor, Ok(matches)),
                     Err(_) => ParserOutput(cost + 1, cursor, Ok(vec![])),
                 }
             }
             Expression::And(peek) => {
-                let ParserOutput(cost, _, res) = peek.parse(rules, input, cursor, depth);
+                let ParserOutput(cost, _, res) = peek.parse(peg, input, cursor, depth);
                 match res {
                     Ok(_) => ParserOutput(cost + 1, cursor, Ok(vec![])),
                     Err(_) => ParserOutput(cost + 1, cursor, Err(())),
                 }
             }
             Expression::Not(peek) => {
-                let ParserOutput(cost, _, res) = peek.parse(rules, input, cursor, depth);
+                let ParserOutput(cost, _, res) = peek.parse(peg, input, cursor, depth);
                 match res {
                     Ok(_) => ParserOutput(cost + 1, cursor, Err(())),
                     Err(_) => ParserOutput(cost + 1, cursor, Ok(vec![])),
@@ -227,7 +184,7 @@ impl Expression {
                 let mut running_cost = 1;
                 for expression in choices {
                     let ParserOutput(cost, cursor, res) =
-                        expression.parse(rules, input, cursor, depth);
+                        expression.parse(peg, input, cursor, depth);
                     running_cost += cost;
                     if let Ok(res) = res {
                         return ParserOutput(running_cost, cursor, Ok(res));
@@ -243,7 +200,7 @@ impl Expression {
 
                 for expression in sequence {
                     let ParserOutput(cost, cursor, res) =
-                        expression.parse(rules, input, new_cursor, depth);
+                        expression.parse(peg, input, new_cursor, depth);
                     running_cost += cost;
                     if let Ok(mut res) = res {
                         captures.append(&mut res);
