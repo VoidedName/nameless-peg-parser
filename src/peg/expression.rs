@@ -216,31 +216,32 @@ impl Expression {
     }
 }
 
+fn escape_literal(literal: &String) -> String {
+    literal
+        .replace("\\", "\\\\")
+        .replace("\\\\0", "\\0")
+        .replace("\\\\1", "\\1")
+        .replace("\\\\2", "\\2")
+        .replace("\\\\3", "\\3")
+        .replace("\\\\4", "\\4")
+        .replace("\\\\5", "\\5")
+        .replace("\\\\6", "\\6")
+        .replace("\\\\7", "\\7")
+        .replace("\\\\8", "\\8")
+        .replace("\\\\9", "\\9")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+        .replace("\n", "\\n")
+}
+
 impl Display for Expression {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Expression::Empty => write!(f, ""),
+            Expression::Empty => write!(f, "()"),
             Expression::Any => write!(f, "."),
-            Expression::Literal(literal) => write!(
-                f,
-                "'{}'",
-                literal
-                    .replace("\\", "\\\\")
-                    .replace("\\\\0", "\\0")
-                    .replace("\\\\1", "\\1")
-                    .replace("\\\\2", "\\2")
-                    .replace("\\\\3", "\\3")
-                    .replace("\\\\4", "\\4")
-                    .replace("\\\\5", "\\5")
-                    .replace("\\\\6", "\\6")
-                    .replace("\\\\7", "\\7")
-                    .replace("\\\\8", "\\8")
-                    .replace("\\\\9", "\\9")
-                    .replace("'", "\\'")
-                    .replace("\r", "\\r")
-                    .replace("\t", "\\t")
-                    .replace("\n", "\\n")
-            ),
+            Expression::Literal(literal) => {
+                write!(f, "'{}'", escape_literal(literal).replace("'", "\\'"))
+            }
             Expression::NonTerminal(token) => write!(f, "{}", token),
             Expression::Range(a, b) => write!(f, "[{}-{}]", a, b), // there is no way to output [az-x] atm, just a way to parse it
             Expression::Class(class) => {
@@ -249,23 +250,7 @@ impl Display for Expression {
                     "[{}]",
                     class
                         .iter()
-                        .map(|c| c
-                            .replace("\\", "\\\\")
-                            .replace("\\\\0", "\\0")
-                            .replace("\\\\1", "\\1")
-                            .replace("\\\\2", "\\2")
-                            .replace("\\\\3", "\\3")
-                            .replace("\\\\4", "\\4")
-                            .replace("\\\\5", "\\5")
-                            .replace("\\\\6", "\\6")
-                            .replace("\\\\7", "\\7")
-                            .replace("\\\\8", "\\8")
-                            .replace("\\\\9", "\\9")
-                            .replace("\r", "\\r")
-                            .replace("\t", "\\t")
-                            .replace("\n", "\\n")
-                            .replace("[", "\\[")
-                            .replace("]", "\\]"))
+                        .map(|c| escape_literal(c).replace("[", "\\[").replace("]", "\\]"))
                         .collect::<Vec<_>>()
                         .join("")
                 )
