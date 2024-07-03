@@ -90,7 +90,7 @@ impl Expression {
                 };
 
                 debug!(
-                    "{}└done parsing {nt} @ {cursor} advanced to {new_cursor} with '{}'",
+                    "{}└{} parsing {nt} @ {cursor} advanced to {new_cursor}",
                     "│".repeat(depth),
                     if res.2.is_ok() { "success" } else { "failure" }
                 );
