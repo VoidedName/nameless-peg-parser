@@ -2,6 +2,10 @@
 name = "nameless-peg-parser"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+keywords = ["peg", "parsing", "grammar"]
+categories = ["parsing", "parser-implementations"]
+repository = "https://github.com/VoidedName/nameless-peg-parser"
 
 [dependencies]
 log = "0.4.22"
