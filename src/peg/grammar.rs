@@ -2,7 +2,7 @@ use crate::peg::expression::Expression;
 use crate::peg::grammar::PEGError::{ParsingError, TransformationError};
 use crate::peg::parsing::{ParserError, ParserOutput};
 use crate::peg::transformer::{TransformError, Transformer};
-use log::{debug, error};
+use log::{debug, warn};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::rc::Rc;
@@ -71,7 +71,7 @@ impl PEG {
         let result = Expression::NonTerminal(self.start.clone()).parse(self, input, 0, 0);
 
         if let ParserOutput(.., Err(err)) = &result {
-            error!("{}", err)
+            warn!("{}", err)
         }
 
         debug!("Finished Parsing");
