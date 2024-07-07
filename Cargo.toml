@@ -6,6 +6,7 @@ license = "MIT"
 keywords = ["peg", "parsing", "grammar"]
 categories = ["parsing", "parser-implementations"]
 repository = "https://github.com/VoidedName/nameless-peg-parser"
+authors = ["Daniel Kogan"]
 
 [dependencies]
 log = "0.4.22"
