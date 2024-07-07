@@ -16,5 +16,6 @@ let result = parser.parse(input_string);
 
 Feel free to make PRs :), I will most likely continue tinkering with it and maybe even properly optimize it.
 
+YT: https://www.youtube.com/watch?v=awtHSLEIFxA
 
 Can be found as a crate: https://docs.rs/nameless-peg-parser/latest/nameless_peg_parser/index.html
