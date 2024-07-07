@@ -1,8 +1,8 @@
 use crate::peg::expression::Expression;
 use crate::peg::grammar::PEGError::{ParsingError, TransformationError};
-use crate::peg::parsing::ParserOutput;
+use crate::peg::parsing::{ParserError, ParserOutput};
 use crate::peg::transformer::{TransformError, Transformer};
-use log::debug;
+use log::{debug, error};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::rc::Rc;
@@ -10,14 +10,14 @@ use std::rc::Rc;
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
 pub enum PEGError {
-    ParsingError(()),
+    ParsingError(ParserError),
     TransformationError(TransformError),
 }
 
 #[derive(Clone, Debug)]
 pub struct PEG {
-    pub(crate) rules: HashMap<String, Expression>,
-    pub(crate) start: String,
+    pub rules: HashMap<String, Expression>,
+    pub start: String,
 }
 
 pub const GRAMMAR_STR: &'static str = "Grammar";
@@ -69,6 +69,10 @@ impl PEG {
         debug!("Begin Parsing");
 
         let result = Expression::NonTerminal(self.start.clone()).parse(self, input, 0, 0);
+
+        if let ParserOutput(.., Err(err)) = &result {
+            error!("{}", err)
+        }
 
         debug!("Finished Parsing");
 

@@ -1,5 +1,5 @@
 use crate::peg::grammar::PEG;
-use crate::peg::parsing::{Capture, ParserOutput, Token};
+use crate::peg::parsing::{Capture, ParserError, ParserErrorCode, ParserOutput, Token};
 use log::debug;
 use std::collections::HashSet;
 use std::fmt::{Display, Formatter};
@@ -49,7 +49,16 @@ impl Expression {
                         Ok(vec![Token::Terminal(Capture(cursor, cursor + 1))]),
                     )
                 } else {
-                    ParserOutput(1, cursor, Err(()))
+                    ParserOutput(
+                        1,
+                        cursor,
+                        Err(ParserError {
+                            position: cursor,
+                            expression: self.clone(),
+                            error: ParserErrorCode::UnexpectedEndOfInput,
+                            cause: None,
+                        }),
+                    )
                 }
             }
             Expression::Literal(pattern) => {
@@ -63,7 +72,16 @@ impl Expression {
                     )
                 } else {
                     // eh, not quite what I wrote above, but close enough (cost is potentially too large)...
-                    ParserOutput(len as u32, cursor, Err(()))
+                    ParserOutput(
+                        len as u32,
+                        cursor,
+                        Err(ParserError {
+                            position: cursor,
+                            expression: self.clone(),
+                            error: ParserErrorCode::ExpressionDoesNotMatch,
+                            cause: None,
+                        }),
+                    )
                 }
             }
             Expression::NonTerminal(nt) => {
@@ -86,7 +104,16 @@ impl Expression {
                             matches,
                         )]),
                     ),
-                    Err(_) => ParserOutput(cost, cursor, Err(())),
+                    Err(inner) => ParserOutput(
+                        cost,
+                        cursor,
+                        Err(ParserError {
+                            position: cursor,
+                            expression: self.clone(),
+                            error: ParserErrorCode::NonTerminalDoesNotMatch,
+                            cause: Some(Box::from(inner)),
+                        }),
+                    ),
                 };
 
                 debug!(
@@ -108,7 +135,16 @@ impl Expression {
                         Ok(vec![Token::Terminal(Capture(cursor, cursor + 1))]),
                     )
                 } else {
-                    ParserOutput(1, cursor, Err(()))
+                    ParserOutput(
+                        1,
+                        cursor,
+                        Err(ParserError {
+                            position: cursor,
+                            expression: self.clone(),
+                            error: ParserErrorCode::ExpressionDoesNotMatch,
+                            cause: None,
+                        }),
+                    )
                 }
             }
             Expression::Class(class) => {
@@ -127,7 +163,16 @@ impl Expression {
                         );
                     }
                 }
-                ParserOutput(cost as u32, cursor, Err(()))
+                ParserOutput(
+                    cost as u32,
+                    cursor,
+                    Err(ParserError {
+                        position: cursor,
+                        expression: self.clone(),
+                        error: ParserErrorCode::ExpressionDoesNotMatch,
+                        cause: None,
+                    }),
+                )
             }
             Expression::Group(expression) => {
                 let ParserOutput(cost, cursor, res) = expression.parse(peg, input, cursor, depth);
@@ -170,13 +215,31 @@ impl Expression {
                 let ParserOutput(cost, _, res) = peek.parse(peg, input, cursor, depth);
                 match res {
                     Ok(_) => ParserOutput(cost + 1, cursor, Ok(vec![])),
-                    Err(_) => ParserOutput(cost + 1, cursor, Err(())),
+                    Err(inner) => ParserOutput(
+                        cost + 1,
+                        cursor,
+                        Err(ParserError {
+                            position: cursor,
+                            expression: self.clone(),
+                            error: ParserErrorCode::ExpressionDoesNotMatch,
+                            cause: Some(Box::from(inner)),
+                        }),
+                    ),
                 }
             }
             Expression::Not(peek) => {
                 let ParserOutput(cost, _, res) = peek.parse(peg, input, cursor, depth);
                 match res {
-                    Ok(_) => ParserOutput(cost + 1, cursor, Err(())),
+                    Ok(inner) => ParserOutput(
+                        cost + 1,
+                        cursor,
+                        Err(ParserError {
+                            position: cursor,
+                            expression: self.clone(),
+                            error: ParserErrorCode::NotDidMatch(inner),
+                            cause: None,
+                        }),
+                    ),
                     Err(_) => ParserOutput(cost + 1, cursor, Ok(vec![])),
                 }
             }
@@ -191,7 +254,16 @@ impl Expression {
                     }
                 }
 
-                ParserOutput(running_cost, cursor, Err(()))
+                ParserOutput(
+                    running_cost,
+                    cursor,
+                    Err(ParserError {
+                        position: cursor,
+                        expression: self.clone(),
+                        error: ParserErrorCode::ExpressionDoesNotMatch,
+                        cause: None,
+                    }),
+                )
             }
             Expression::Sequence(sequence) => {
                 let mut running_cost = 1;
@@ -202,11 +274,23 @@ impl Expression {
                     let ParserOutput(cost, cursor, res) =
                         expression.parse(peg, input, new_cursor, depth);
                     running_cost += cost;
-                    if let Ok(mut res) = res {
-                        captures.append(&mut res);
-                        new_cursor = cursor;
-                    } else {
-                        return ParserOutput(running_cost, cursor, Err(()));
+                    match res {
+                        Ok(mut res) => {
+                            captures.append(&mut res);
+                            new_cursor = cursor;
+                        }
+                        Err(inner) => {
+                            return ParserOutput(
+                                running_cost,
+                                cursor,
+                                Err(ParserError {
+                                    position: cursor,
+                                    expression: self.clone(),
+                                    error: ParserErrorCode::ExpressionDoesNotMatch,
+                                    cause: Some(Box::from(inner)),
+                                }),
+                            );
+                        }
                     }
                 }
 
