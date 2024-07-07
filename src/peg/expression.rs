@@ -12,7 +12,7 @@ pub enum Expression {
     Any,
     Literal(String),
     NonTerminal(String),   // references a rule
-    Range(String, String), // restrict to ASCII only, don't want to deal with "characters"
+    Range(String, String),
     Class(HashSet<String>),
     Group(Rc<Box<Expression>>),
     ZeroOrMore(Rc<Box<Expression>>),
@@ -20,8 +20,8 @@ pub enum Expression {
     Optional(Rc<Box<Expression>>),
     And(Rc<Box<Expression>>),
     Not(Rc<Box<Expression>>),
-    Choice(Vec<Expression>), // generalizing it to any number of choices | illegal to construct with less than 2
-    Sequence(Vec<Expression>), // generalizing it to any number of sequences | illegal to be empty
+    Choice(Vec<Expression>), // generalizing it to any number of choices
+    Sequence(Vec<Expression>), // generalizing it to any number of sequences
 }
 
 impl Expression {
