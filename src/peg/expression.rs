@@ -88,7 +88,7 @@ impl Expression {
                 let rule = peg
                     .rules
                     .get(nt)
-                    .expect(format!("Encountered unknown NonTerminal symbol: {}", nt).as_str());
+                    .unwrap_or_else(|| panic!("Encountered unknown NonTerminal symbol: {}", nt));
 
                 debug!("{}parsing {nt} @ {cursor}: {rule}", "│".repeat(depth));
 
@@ -300,9 +300,9 @@ impl Expression {
     }
 }
 
-fn escape_literal(literal: &String) -> String {
+fn escape_literal(literal: &str) -> String {
     literal
-        .replace("\\", "\\\\")
+        .replace('\\', "\\\\")
         .replace("\\\\0", "\\0")
         .replace("\\\\1", "\\1")
         .replace("\\\\2", "\\2")
@@ -313,9 +313,9 @@ fn escape_literal(literal: &String) -> String {
         .replace("\\\\7", "\\7")
         .replace("\\\\8", "\\8")
         .replace("\\\\9", "\\9")
-        .replace("\r", "\\r")
-        .replace("\t", "\\t")
-        .replace("\n", "\\n")
+        .replace('\r', "\\r")
+        .replace('\t', "\\t")
+        .replace('\n', "\\n")
 }
 
 impl Display for Expression {
@@ -324,7 +324,7 @@ impl Display for Expression {
             Expression::Empty => write!(f, "()"),
             Expression::Any => write!(f, "."),
             Expression::Literal(literal) => {
-                write!(f, "'{}'", escape_literal(literal).replace("'", "\\'"))
+                write!(f, "'{}'", escape_literal(literal).replace('\'', "\\'"))
             }
             Expression::NonTerminal(token) => write!(f, "{}", token),
             Expression::Range(a, b) => write!(f, "[{}-{}]", a, b), // there is no way to output [az-x] atm, just a way to parse it
@@ -334,7 +334,7 @@ impl Display for Expression {
                     "[{}]",
                     class
                         .iter()
-                        .map(|c| escape_literal(c).replace("[", "\\[").replace("]", "\\]"))
+                        .map(|c| escape_literal(c).replace('[', "\\[").replace(']', "\\]"))
                         .collect::<Vec<_>>()
                         .join("")
                 )

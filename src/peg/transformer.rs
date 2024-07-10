@@ -116,20 +116,20 @@ impl Transformer<'_> {
         }
 
         // check if fully consumed
-        if let Some(_) = iter.next() {
+        if iter.next().is_some() {
             return Err(UnExpectedToken(format!(
                 "Grammar should have no token following {END_OF_FILE_STR}!"
             )));
         }
 
         // check if any observed non_terminals have no rule
-        let keys = rules.keys().map(|s| s.clone()).collect::<HashSet<String>>();
+        let keys = rules.keys().cloned().collect::<HashSet<String>>();
         let missing_keys = non_terminals
             .difference(&keys)
-            .map(|s| s.clone())
+            .cloned()
             .collect::<Vec<_>>();
 
-        if missing_keys.len() > 0 {
+        if !missing_keys.is_empty() {
             return Err(AmbiguousNonTerminal(format!(
                 "Missing rules for NonTerminals [{}]!",
                 missing_keys.join(", ")
@@ -153,7 +153,7 @@ impl Transformer<'_> {
             }
             _ => Err(UnExpectedToken(
                 "Expected a NonTerminal but got terminal".to_string(),
-            )),
+            ))
         }
     }
 
@@ -247,7 +247,7 @@ impl Transformer<'_> {
             }
         }
 
-        if identifier.len() > 0 {
+        if !identifier.is_empty() {
             Ok(identifier)
         } else {
             Err(EmptyIdentifier)
@@ -346,7 +346,7 @@ impl Transformer<'_> {
                     )))
                 }
             }
-            l @ _ => Err(WrongNumberOfTokens(format!(
+            l => Err(WrongNumberOfTokens(format!(
                 "Expected 0 or 1 but got {}",
                 l
             ))),
@@ -372,7 +372,7 @@ impl Transformer<'_> {
                     )))
                 }
             }
-            l @ _ => Err(WrongNumberOfTokens(format!(
+            l => Err(WrongNumberOfTokens(format!(
                 "Expected 0 or 1 but got {}",
                 l
             ))),

@@ -20,34 +20,34 @@ pub struct PEG {
     pub start: String,
 }
 
-pub const GRAMMAR_STR: &'static str = "Grammar";
-pub const END_OF_FILE_STR: &'static str = "EndOfFile";
-pub const END_OF_LINE_STR: &'static str = "EndOfLine";
-pub const SPACE_STR: &'static str = "Space";
-pub const COMMENT_STR: &'static str = "Comment";
-pub const SPACING_STR: &'static str = "Spacing";
-pub const LEFT_ARROW_STR: &'static str = "LEFTARROW";
-pub const SLASH_STR: &'static str = "SLASH";
-pub const AND_STR: &'static str = "AND";
-pub const NOT_STR: &'static str = "NOT";
-pub const QUESTION_STR: &'static str = "QUESTION";
-pub const STAR_STR: &'static str = "STAR";
-pub const PLUS_STR: &'static str = "PLUS";
-pub const OPEN_STR: &'static str = "OPEN";
-pub const CLOSE_STR: &'static str = "CLOSE";
-pub const DOT_STR: &'static str = "DOT";
-pub const CHAR_STR: &'static str = "Char";
-pub const RANGE_STR: &'static str = "Range";
-pub const CLASS_MEMBER_STR: &'static str = "ClassMember";
-pub const CLASS_STR: &'static str = "Class";
-pub const LITERAL_STR: &'static str = "Literal";
-pub const IDENTIFIER_STR: &'static str = "Identifier";
-pub const EXPRESSION_STR: &'static str = "Expression";
-pub const PRIMARY_STR: &'static str = "Primary";
-pub const SUFFIX_STR: &'static str = "Suffix";
-pub const PREFIX_STR: &'static str = "Prefix";
-pub const SEQUENCE_STR: &'static str = "Sequence";
-pub const DEFINITION_STR: &'static str = "Definition";
+pub const GRAMMAR_STR: &str = "Grammar";
+pub const END_OF_FILE_STR: &str = "EndOfFile";
+pub const END_OF_LINE_STR: &str = "EndOfLine";
+pub const SPACE_STR: &str = "Space";
+pub const COMMENT_STR: &str = "Comment";
+pub const SPACING_STR: &str = "Spacing";
+pub const LEFT_ARROW_STR: &str = "LEFTARROW";
+pub const SLASH_STR: &str = "SLASH";
+pub const AND_STR: &str = "AND";
+pub const NOT_STR: &str = "NOT";
+pub const QUESTION_STR: &str = "QUESTION";
+pub const STAR_STR: &str = "STAR";
+pub const PLUS_STR: &str = "PLUS";
+pub const OPEN_STR: &str = "OPEN";
+pub const CLOSE_STR: &str = "CLOSE";
+pub const DOT_STR: &str = "DOT";
+pub const CHAR_STR: &str = "Char";
+pub const RANGE_STR: &str = "Range";
+pub const CLASS_MEMBER_STR: &str = "ClassMember";
+pub const CLASS_STR: &str = "Class";
+pub const LITERAL_STR: &str = "Literal";
+pub const IDENTIFIER_STR: &str = "Identifier";
+pub const EXPRESSION_STR: &str = "Expression";
+pub const PRIMARY_STR: &str = "Primary";
+pub const SUFFIX_STR: &str = "Suffix";
+pub const PREFIX_STR: &str = "Prefix";
+pub const SEQUENCE_STR: &str = "Sequence";
+pub const DEFINITION_STR: &str = "Definition";
 
 impl PEG {
     pub fn from_grammar(start: &str, grammar: &str) -> Result<Self, PEGError> {
